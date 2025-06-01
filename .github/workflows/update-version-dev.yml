@@ -1,0 +1,104 @@
+# Pipeline allow to Update incoming versions Manually by selecting options (major, minor, patch)
+# Then version update works this way:
+# we have at moment at our branch version at pom.xml e.g. 0.0.1-SNAPSHOT
+# then it get update to 0.0.2 (depends on our choice) manually and instantly, that is our release version with TAG and commit
+# then create next version 0.0.2-SNAPSHOT with commit
+
+# To sum up it is kinda expanded way for versioning
+# from e.g. X.Y.Z-SNAPSHOT -> X.Y.(Z+1) (+TAG) -> X.Y.(Z+1)-SNAPSHOT
+
+name: Update Version on Dev
+
+on:
+  workflow_dispatch: # Allows manually triggering the pipeline by GitHub Actions
+    inputs:
+      bump:
+        description: |
+          Select version part to update:
+            - patch: update after bug fixes, functionality repairs or tests
+            - minor: add new features
+            - major: introduce breaking changes (e.g. architecture)
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  update-version-dev:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code from dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0 # fetch full history
+          persist-credentials: true  # use GITHUB_TOKEN to push
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Get current version from pom.xml
+        id: get_version
+        run: |
+          FULL_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=${FULL_VERSION%-SNAPSHOT}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Calculate new version
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ env.VERSION }}"
+          bump="${{ github.event.inputs.bump }}"
+          
+          if [[ "$bump" == "patch" ]]; then
+            patch=$((patch + 1))
+          elif [[ "$bump" == "minor" ]]; then
+            minor=$((minor + 1))
+            patch=0
+          elif [[ "$bump" == "major" ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+          else
+            echo "Unknown bump type: $bump"
+            exit 1
+          fi
+          
+          NEW_RELEASE_VERSION="${major}.${minor}.${patch}"
+          echo "NEW_RELEASE_VERSION=$NEW_RELEASE_VERSION" >> $GITHUB_ENV
+
+      - name: Set release version and commit
+        run: |
+          mvn versions:set -DnewVersion=${{ env.NEW_RELEASE_VERSION }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          git commit -m "Prepare release version ${{ env.NEW_RELEASE_VERSION }}"
+          git push origin dev
+
+      - name: Create release tag
+        if: ${{ env.NEW_RELEASE_VERSION != '' }}
+        run: |
+          git tag -a ${{ env.NEW_RELEASE_VERSION }} -m "Release version ${{ env.NEW_RELEASE_VERSION }}"
+          git push origin dev --tags
+
+      - name: Calculate new snapshot version
+        run: |
+          NEW_SNAPSHOT_VERSION="${{ env.NEW_RELEASE_VERSION }}-SNAPSHOT"
+          echo "NEW_SNAPSHOT_VERSION=$NEW_SNAPSHOT_VERSION" >> $GITHUB_ENV
+
+      - name: Set new snapshot version in pom.xml and commit
+        run: |
+          mvn versions:set -DnewVersion=${{ env.NEW_SNAPSHOT_VERSION }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          git commit -m "Prepare next development iteration: ${{ env.NEW_SNAPSHOT_VERSION }}"
+          git push origin dev

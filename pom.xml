@@ -17,6 +17,8 @@
 
     <properties>
         <java.version>22</java.version>
+        <jacoco.version>0.8.11</jacoco.version>
+        <sonarsource.scanner.maven.version>4.0.0.4121</sonarsource.scanner.maven.version>
     </properties>
     <dependencies>
         <dependency>
@@ -36,6 +38,30 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonarsource.scanner.maven.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <finalName>notes-graphql-k8s-lab</finalName>

@@ -1,0 +1,66 @@
+# This pipeline works manually
+# and what it does is find newest non-SNAPSHOT TAG on dev branch
+# and merge it to main/prod branch
+
+name: Release Version on Prod/Main
+
+on:
+  workflow_dispatch: # Allows manually triggering the pipeline by GitHub Actions
+
+jobs:
+  update-version-prod:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # fetch full history
+          persist-credentials: true  # use GITHUB_TOKEN to push
+
+      - name: Set Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all tags
+        run: git fetch origin --tags
+
+      - name: Determine last release tag and its commit hash
+        id: get_last_tag
+        run: |
+          git checkout dev
+          LAST_TAG=$(git tag --merged dev --sort=-v:refname | grep -v 'SNAPSHOT' | head -n 1)
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "No valid release tag found on dev branch"
+            exit 1
+          fi
+    
+          COMMIT_HASH=$(git rev-list -n 1 "$LAST_TAG")
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+
+      - name: Ensure it's not a snapshot
+        run: |
+          if [[ "${{ env.LAST_TAG }}" == *"-SNAPSHOT" ]]; then
+            echo "ERROR: SNAPSHOT version ${{ env.LAST_TAG }} found; aborting!"
+            exit 1  # Exit with error
+          fi
+
+      - name: Verify if release tag from dev is already merged into main
+        run: |
+          git checkout main
+          git fetch origin main
+          CURRENT_HEAD=$(git rev-parse HEAD)
+          if git merge-base --is-ancestor ${{ env.COMMIT_HASH }} $CURRENT_HEAD; then
+            echo "ERROR: The release tag has already been merged into main. Aborting to avoid redundant merge."
+            exit 1  # Exit with error, as it's already merged
+          fi
+
+      - name: Merge release tag into main
+        run: |
+          git checkout main
+          git merge ${{ env.COMMIT_HASH }} --no-ff -m "Release version ${{ env.LAST_TAG }}"
+          git push origin main
