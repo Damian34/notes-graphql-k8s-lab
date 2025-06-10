@@ -1,12 +1,12 @@
-package com.damian34.app;
+package com.damian34.notes;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SimpleApplication {
+public class NoteApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SimpleApplication.class, args);
+		SpringApplication.run(NoteApplication.class, args);
 	}
 }

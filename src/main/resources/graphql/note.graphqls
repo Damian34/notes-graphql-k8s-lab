@@ -1,0 +1,44 @@
+type Query {
+    getNote(id: ID!): Note
+    getAllNotes: [Note]
+    getNotesByFilter(filter: NoteFilterRequest): [Note]
+    readNotes(page: Int!, size: Int!, filter: NoteFilterRequest): NotePage!
+}
+
+type Mutation {
+    createNote(request: CreateNoteRequest!): Note!
+    updateNote(request: UpdateNoteRequest!): Note!
+    deleteNote(id: UUID!): Boolean
+}
+
+type Note {
+    id: ID!
+    name: String!
+    content: String!
+}
+
+type NotePage {
+    content: [Note!]
+    pageNumber: Int!
+    pageSize: Int!
+    totalElements: Int!
+}
+
+input CreateNoteRequest {
+    name: String!
+    content: String
+}
+
+input UpdateNoteRequest {
+    id: UUID!
+    name: String!
+    content: String!
+}
+
+input NoteFilterRequest {
+    id: UUID
+    name: String
+    content: String
+}
+
+scalar UUID
