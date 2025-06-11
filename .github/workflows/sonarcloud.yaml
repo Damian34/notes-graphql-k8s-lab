@@ -30,6 +30,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Build project
+        run: mvn clean package
+
       - name: SonarCloud Scan
         run: |
           mvn sonar:sonar \
