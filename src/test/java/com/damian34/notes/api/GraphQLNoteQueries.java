@@ -1,10 +1,10 @@
 package com.damian34.notes.api;
 
-public final class GraphQLNoteQueries {
-    private GraphQLNoteQueries() {
-        throw new AssertionError("Utility class");
-    }
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class GraphQLNoteQueries {
     // language=GraphQL
     public static final String CREATE_NOTE = """
             mutation CreateNote($request: CreateNoteRequest!) {

@@ -3,6 +3,9 @@
 API for practicing GraphQL with CRUD and Kubernetes.  
 (Kubernetes will be added later)
 
+**GraphiQL UI:** http://localhost:8080/graphiql  
+**Actuator Health:** http://localhost:8080/actuator/health
+
 ---
 
 At the beginning, I'd like to share some of my thoughts.

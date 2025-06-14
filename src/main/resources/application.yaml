@@ -28,10 +28,6 @@ management:
     health:
       show-details: always
 
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-  packages-to-scan: com.damian34.notes.api
+  graphql:
+    graphiql:
+      enabled: true

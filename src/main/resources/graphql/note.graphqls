@@ -1,44 +1,72 @@
 type Query {
+    "Get a single note by its ID"
     getNote(id: ID!): Note
+    "Get all notes"
     getAllNotes: [Note]
+    "Get notes filtered by criteria"
     getNotesByFilter(filter: NoteFilterRequest): [Note]
+    "Get paginated notes with optional filtering"
     readNotes(page: Int!, size: Int!, filter: NoteFilterRequest): NotePage!
 }
 
 type Mutation {
+    "Create a new note"
     createNote(request: CreateNoteRequest!): Note!
+    "Update an existing note"
     updateNote(request: UpdateNoteRequest!): Note!
+    "Delete a note by its ID"
     deleteNote(id: UUID!): Boolean
 }
 
+"Represents a note in the system"
 type Note {
+    "Unique identifier of the note"
     id: ID!
+    "Name of the note"
     name: String!
+    "Content of the note"
     content: String!
 }
 
+"Represents a paginated result of notes"
 type NotePage {
+    "List of notes in the current page"
     content: [Note!]
+    "Current page number (0-based)"
     pageNumber: Int!
+    "Number of items per page"
     pageSize: Int!
+    "Total number of items across all pages"
     totalElements: Int!
 }
 
+"Input type for creating a new note"
 input CreateNoteRequest {
+    "Name of the note"
     name: String!
+    "Content of the note"
     content: String
 }
 
+"Input type for updating an existing note"
 input UpdateNoteRequest {
+    "ID of the note to update"
     id: UUID!
+    "New name for the note"
     name: String!
+    "New content for the note"
     content: String!
 }
 
+"Input type for filtering notes"
 input NoteFilterRequest {
+    "Filter by note ID"
     id: UUID
+    "Filter by note name"
     name: String
+    "Filter by note content"
     content: String
 }
 
+"Custom scalar type for UUID values"
 scalar UUID
