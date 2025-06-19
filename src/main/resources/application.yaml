@@ -1,8 +1,6 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: postgres
+  profiles:
+    default: dev
   jpa:
     properties:
       hibernate:
@@ -27,7 +25,6 @@ management:
   endpoint:
     health:
       show-details: always
-
   graphql:
     graphiql:
       enabled: true
