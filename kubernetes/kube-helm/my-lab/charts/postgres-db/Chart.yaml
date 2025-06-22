@@ -1,0 +1,9 @@
+apiVersion: v2
+name: postgres-db
+description: Helm chart for postgres-db service
+version: 0.1.0
+type: application
+
+keywords:
+  - postgres
+  - db

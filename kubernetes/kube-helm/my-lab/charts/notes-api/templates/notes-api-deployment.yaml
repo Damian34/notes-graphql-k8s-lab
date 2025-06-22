@@ -1,0 +1,67 @@
+{{- if .Values.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "notes-api.fullname" . }} # resource name in K8s of Deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "notes-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{ include "notes-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "notes-api.selectorLabels" . | nindent 8 }}
+    spec: # container definitions
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - >
+              until nc -z {{ include "notes-api.postgres-host" . }} {{ .Values.global.env.POSTGRES_PORT }};
+              do echo waiting for db; sleep 2; done
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          env:
+            - name: SPRING_DATASOURCE_URL # take local with priority
+              value: jdbc:postgresql://{{ include "notes-api.postgres-host" . }}:{{ .Values.global.env.POSTGRES_PORT }}/{{ .Values.global.env.POSTGRES_DB }}
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.global.env.POSTGRES_USER }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.sharedSecrets }}
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: "250m"  # 1000m = 1 core on the processor
+              memory: "200Mi" # RAM
+            limits:
+              cpu: "500m"
+              memory: "800Mi"
+          readinessProbe: # check if app is ready to use
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+          livenessProbe: # check if api is alive
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+{{- end }}

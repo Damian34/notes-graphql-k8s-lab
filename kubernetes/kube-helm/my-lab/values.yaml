@@ -1,0 +1,39 @@
+global:
+  sharedSecrets: "postgres-db-secret"
+  env:
+    SPRING_PROFILES_ACTIVE: "dev"
+    POSTGRES_DB: "postgres"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PORT: "5432"
+
+# global values are overwriting local, but only when charts run globally!
+
+postgres-db: # For global & solo run
+  namespace: "notes-lab"
+  enabled: true
+  replicas: 1
+  image:
+    repository: postgres
+    tag: "17.4-alpine"
+    pullPolicy: Always
+  service:
+    port: 5432
+
+notes-api: # For global run only!
+  namespace: "notes-lab"
+  enabled: true
+  replicas: 1
+  replicasMax: 2
+  image:
+    repository: notes-api
+    tag: "latest"
+    pullPolicy: Never # local only
+  service:
+    port: 8081
+    nodePort: 30081
+  healthCheck:
+    path: "/actuator/health"
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5

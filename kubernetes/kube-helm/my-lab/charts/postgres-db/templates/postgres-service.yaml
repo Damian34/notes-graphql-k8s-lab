@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "postgres-db.fullname" . }}-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "postgres-db.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{ include "postgres-db.selectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.env.POSTGRES_PORT | default .Values.global.env.POSTGRES_PORT }}
+      targetPort: {{ .Values.env.POSTGRES_PORT | default .Values.global.env.POSTGRES_PORT }}
+
+
+# include - inserts the output of a named template (e.g. a helper)
+# nindent 4 - adds a newline, then indents every line of the result by 4 spaces
+# indent 4 - indents every line of the result by 4 spaces, but does NOT add a newline
+# default - returns the second value if the first one is empty or undefined
+# printf - formats text like in printf() (e.g. to build strings)
+# trimSuffix "-" - removes a trailing dash from the result
+# trunc 63 - cuts the string to 63 characters max (useful for K8s name limits)
+# required - throws an error if the value is missing (useful for mandatory fields)
+# quote - wraps the value in double quotes (useful for YAML strings)
+# tpl - renders a string as a template (evaluates variables inside a string)

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-db # resource name in K8s of Deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-db # K8s looks for Pods containing this name then delete or add if doesn't exist enough
+  template:
+    metadata:
+      labels:
+        app: postgres-db # it is to identify to whom belong Pod and to find later by matchLabels
+    spec: # container definitions
+      containers:
+        - name: postgres
+          image: postgres:17.4-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef: # from configmap.yaml
+                  name: postgres-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef: # from configmap.yaml
+                  name: postgres-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: # from secret.yaml
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "250m"  # 1000m = 1 core on the processor
+              memory: "200Mi" # RAM
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+          readinessProbe: # check if app is ready to use
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe: # check if api is alive
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: postgres-storage # volumes are connected to "volumeMounts" by the name
+          persistentVolumeClaim:
+            claimName: postgres-db-pvc

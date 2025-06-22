@@ -1,0 +1,62 @@
+{{- if .Values.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "postgres-db.fullname" . }} # resource name in K8s of Deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "postgres-db.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{ include "postgres-db.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "postgres-db.selectorLabels" . | nindent 8 }}
+    spec: # container definitions
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.env.POSTGRES_PORT | default .Values.global.env.POSTGRES_PORT }}
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.env.POSTGRES_DB | default .Values.global.env.POSTGRES_DB }}
+            - name: POSTGRES_USER
+              value: {{ .Values.env.POSTGRES_USER | default .Values.global.env.POSTGRES_USER }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresSecret | default .Values.global.sharedSecrets }}
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "250m"  # 1000m = 1 core on the processor
+              memory: "200Mi" # RAM
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+          readinessProbe: # check if app is ready to use
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+          livenessProbe: # check if api is alive
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+      volumes:
+        - name: postgres-storage # volumes are connected to "volumeMounts" by the name
+          persistentVolumeClaim:
+            claimName: {{ include "postgres-db.fullname" . }}-pvc
+{{- end }}

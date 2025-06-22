@@ -1,7 +1,7 @@
-# Notes GraphQL & Kubernetes Lab
+# Notes GraphQL Api & Kubernetes Lab
 
-API for practicing GraphQL with CRUD and Kubernetes.  
-(Kubernetes will be added later)
+API for practicing GraphQL with CRUD and Docker compose but also Kubernetes.
+(Kubernetes notes lab at separate packet)
 
 **GraphiQL UI:** http://localhost:8080/graphiql  
 **Actuator Health:** http://localhost:8080/actuator/health

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notes-api # resource name in K8s of Deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notes-api # K8s looks for Pods containing this name then delete or add if doesn't exist enough
+  template:
+    metadata:
+      labels:
+        app: notes-api # it is to identify to whom belong Pod and to find later by matchLabels
+    spec: # container definitions
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:latest
+          command: [ 'sh', '-c', 'until nc -z postgres-db-service 5432; do echo waiting for db; sleep 2; done' ]
+      containers:
+        - name: notes-api
+          image: notes-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef: # from configmap.yaml
+                  name: postgres-config
+                  # normally with helm jdbc url should be built here probably, or maybe not because it doesn't contain any secret
+                  key: POSTGRES_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                configMapKeyRef: # from configmap.yaml
+                  name: postgres-config
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef: # from secret.yaml
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: "250m"  # 1000m = 1 core on the processor
+              memory: "200Mi" # RAM
+            limits:
+              cpu: "500m"
+              memory: "800Mi"
+          readinessProbe: # check if app is ready to use
+            httpGet:
+              path: "/actuator/health"
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe: # check if api is alive
+            httpGet:
+              path: "/actuator/health"
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5

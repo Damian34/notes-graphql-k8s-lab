@@ -1,0 +1,24 @@
+namespace: "notes-lab"
+enabled: true
+replicas: 1
+image:
+  repository: postgres
+  tag: "17.4-alpine"
+  pullPolicy: Always
+service:
+  port: 5432
+persistence:
+  size: 1Gi
+env:
+  POSTGRES_DB: "postgres"
+  POSTGRES_USER: "postgres"
+  POSTGRES_PORT: 5432
+
+fullnameOverride: ""
+postgresSecret: "postgres-db-secret"
+
+healthCheck:
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
